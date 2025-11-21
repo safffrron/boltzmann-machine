@@ -200,7 +200,8 @@ class BinaryRBM(nn.Module):
         negative_grad = torch.mm(v_neg.t(), prob_h_neg) / batch_size
         
         return positive_grad, negative_grad, v_neg
-    
+        
+    @torch.no_grad()
     def update_weights(
         self,
         v_pos: torch.Tensor,
