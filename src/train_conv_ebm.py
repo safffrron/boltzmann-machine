@@ -271,35 +271,38 @@ def train_conv_ebm(config: dict):
         if (epoch + 1) % config.get('sample_every', 10) == 0:
             print("Generating samples...")
             model.eval()
+
+            # Sample using long Langevin chain (needs gradients wrt x!)
+            num_samples = 64
+            samples = initialize_samples(
+                num_samples,
+                (3, 32, 32),
+                method='uniform',
+                device=device
+            )
+
+            samples = sampler.sample(
+                energy_fn=model,
+                init_samples=samples,
+                num_steps=config.get('sample_steps', 200)
+            )
+
+            # From here on, we don't need grads anymore
             with torch.no_grad():
-                # Sample using long Langevin chain
-                num_samples = 64
-                samples = initialize_samples(
-                    num_samples,
-                    (3, 32, 32),
-                    method='uniform',
-                    device=device
-                )
-                
-                samples = sampler.sample(
-                    energy_fn=model,
-                    init_samples=samples,
-                    num_steps=config.get('sample_steps', 200)
-                )
-                
                 # Denormalize for visualization
-                samples = (samples + 1) / 2
-                samples = torch.clamp(samples, 0, 1)
-                
+                samples_vis = (samples + 1) / 2
+                samples_vis = torch.clamp(samples_vis, 0, 1)
+
                 # Save grid
                 grid_path = os.path.join(
                     exp_dir, 'samples',
                     f"samples_epoch_{epoch+1}.png"
                 )
-                save_image_grid(samples.cpu(), grid_path, nrow=8, normalize=False)
+                save_image_grid(samples_vis.cpu(), grid_path, nrow=8, normalize=False)
                 print(f"Saved samples to {grid_path}")
-            
+
             model.train()
+
     
     print("\n" + "="*50)
     print("Training completed!")
