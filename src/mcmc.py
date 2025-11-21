@@ -226,9 +226,14 @@ class LangevinSampler:
         trajectory = [x.detach().cpu().clone()] if return_trajectory else None
         
         for _ in range(num_steps):
+            # Ensure x requires grad for Langevin updates
+            x = x.detach()
+            x.requires_grad_(True)
+
             # Compute energy and gradients
             energy = energy_fn(x).sum()
             grad = torch.autograd.grad(energy, x, create_graph=False)[0]
+
             
             # Clip gradients for stability
             if self.clip_grad is not None:
