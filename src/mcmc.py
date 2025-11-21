@@ -205,57 +205,51 @@ class LangevinSampler:
         self,
         energy_fn,
         init_samples: torch.Tensor,
-        num_steps: int = 20,  # Reduced for Kaggle
+        num_steps: int = 20,
         return_trajectory: bool = False
     ) -> torch.Tensor:
         """
         Sample using Langevin dynamics.
-        
-        Args:
-            energy_fn: Function that computes energy E(x)
-            init_samples: Initial samples [batch_size, ...]
-            num_steps: Number of Langevin steps (reduced for speed)
-            return_trajectory: Return entire trajectory
-            
-        Returns:
-            Final samples or trajectory
         """
         x = init_samples.clone().to(self.device)
         x.requires_grad = True
-        
+
         trajectory = [x.detach().cpu().clone()] if return_trajectory else None
-        
+
         for _ in range(num_steps):
-            # Ensure x requires grad for Langevin updates
-            x = x.detach()
+
+            # Ensure x requires grad
             x.requires_grad_(True)
 
-            # Compute energy and gradients
+            # Forward pass
             energy = energy_fn(x).sum()
+
+            # Compute gradient wrt x
             grad = torch.autograd.grad(energy, x, create_graph=False)[0]
 
-            
             # Clip gradients for stability
             if self.clip_grad is not None:
                 grad = torch.clamp(grad, -self.clip_grad, self.clip_grad)
-            
-            # Langevin update: x = x - step_size * ∇E(x) + noise
+
+            # Langevin update
             noise = torch.randn_like(x) * self.noise_scale
             x = x - self.step_size * grad + noise
-            
-            # Clamp to valid range
+
+            # Clamp to valid pixel range
             x = torch.clamp(x, -1, 1)
+
+            # Detach to avoid graph accumulation
             x = x.detach()
-            x.requires_grad = True
-            
+
+            # 🔥 MISSING LINE — you MUST add this
             if return_trajectory:
-                trajectory.append(x.detach().cpu().clone())
-        
-        x = x.detach()
-        
+                trajectory.append(x.cpu().clone())
+
         if return_trajectory:
             return torch.stack(trajectory)
+
         return x
+
     
     def sample_with_diagnostics(
         self,
