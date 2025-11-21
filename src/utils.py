@@ -107,7 +107,7 @@ def get_device(gpu_id: Optional[int] = None) -> torch.device:
 
 def save_checkpoint(
     model: torch.nn.Module,
-    optimizer: torch.optim.Optimizer,
+    optimizer: Optional[torch.optim.Optimizer],
     epoch: int,
     loss: float,
     save_path: str,
@@ -115,28 +115,33 @@ def save_checkpoint(
 ):
     """
     Save model checkpoint.
-    
+
     Args:
         model: Model to save
-        optimizer: Optimizer state
+        optimizer: Optimizer state (can be None)
         epoch: Current epoch
         loss: Current loss
         save_path: Path to save checkpoint
         additional_info: Additional information to save
     """
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    
+
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
-        'optimizer_state_dict': optimizer.state_dict(),
         'loss': loss,
     }
-    
+
+    # Only add optimizer state if it exists
+    if optimizer is not None:
+        checkpoint['optimizer_state_dict'] = optimizer.state_dict()
+
+    # Add any extra metadata
     if additional_info:
         checkpoint.update(additional_info)
-    
+
     torch.save(checkpoint, save_path)
+
 
 
 def load_checkpoint(
