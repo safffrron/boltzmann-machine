@@ -1,21 +1,29 @@
 """
-Visualization utilities for EBM experiments.
+Complete visualization suite for EBM experiments.
 
-Basic plotting functions needed for training and evaluation.
+Generates all plots for analysis and report.
 """
 
 import os
+import json
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 import torchvision.utils as vutils
+from matplotlib.gridspec import GridSpec
 
 # Set style
 sns.set_style("whitegrid")
+sns.set_palette("husl")
 plt.rcParams['figure.dpi'] = 100
+plt.rcParams['font.size'] = 10
 
+
+# ============================================================================
+# Basic Plotting
+# ============================================================================
 
 def save_image_grid(
     images: torch.Tensor,
@@ -24,19 +32,9 @@ def save_image_grid(
     normalize: bool = True,
     value_range: Optional[Tuple[float, float]] = None
 ):
-    """
-    Save a grid of images.
-    
-    Args:
-        images: Images tensor [N, C, H, W]
-        save_path: Path to save grid
-        nrow: Number of images per row
-        normalize: Whether to normalize images
-        value_range: Range for normalization
-    """
+    """Save a grid of images."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
-    # Make grid
     grid = vutils.make_grid(
         images,
         nrow=nrow,
@@ -46,11 +44,13 @@ def save_image_grid(
         pad_value=1
     )
     
-    # Convert to numpy and save
     grid_np = grid.cpu().numpy().transpose(1, 2, 0)
     
     plt.figure(figsize=(12, 12))
-    plt.imshow(grid_np)
+    if grid_np.shape[2] == 1:
+        plt.imshow(grid_np.squeeze(), cmap='gray')
+    else:
+        plt.imshow(grid_np)
     plt.axis('off')
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches='tight', dpi=150)
@@ -62,14 +62,7 @@ def plot_training_curves(
     save_path: str,
     title: str = "Training Curves"
 ):
-    """
-    Plot training curves.
-    
-    Args:
-        metrics: Dictionary of metric_name -> {step: value}
-        save_path: Path to save plot
-        title: Plot title
-    """
+    """Plot training curves from metrics dict."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
     n_metrics = len(metrics)
@@ -83,9 +76,9 @@ def plot_training_curves(
         vals = [values[s] for s in steps]
         
         axes[idx].plot(steps, vals, linewidth=2)
-        axes[idx].set_xlabel('Epoch')
-        axes[idx].set_ylabel(metric_name.replace('_', ' ').title())
-        axes[idx].set_title(metric_name.replace('_', ' ').title())
+        axes[idx].set_xlabel('Epoch', fontsize=12)
+        axes[idx].set_ylabel(metric_name.replace('_', ' ').title(), fontsize=12)
+        axes[idx].set_title(metric_name.replace('_', ' ').title(), fontsize=13)
         axes[idx].grid(True, alpha=0.3)
     
     plt.suptitle(title, fontsize=14, fontweight='bold')
@@ -94,31 +87,190 @@ def plot_training_curves(
     plt.close()
 
 
+# ============================================================================
+# Comparison Plots
+# ============================================================================
+
+def plot_cd_comparison(
+    results_dict: dict,
+    save_path: str,
+    metric_name: str = 'fid',
+    title: str = 'CD-k Comparison',
+    ylabel: Optional[str] = None,
+    log_scale: bool = False
+):
+    """
+    Compare metrics across different CD-k values.
+    
+    Args:
+        results_dict: Dict mapping CD-k to metric value
+        save_path: Path to save plot
+        metric_name: Name of metric
+        title: Plot title
+        ylabel: Y-axis label (auto if None)
+        log_scale: Use log scale for y-axis
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    cd_values = sorted(results_dict.keys())
+    metric_values = [results_dict[k] for k in cd_values]
+    
+    plt.figure(figsize=(10, 6))
+    plt.plot(cd_values, metric_values, 'o-', linewidth=2.5, markersize=10, color='steelblue')
+    plt.xlabel('CD-k Steps', fontsize=13)
+    plt.ylabel(ylabel or metric_name.upper(), fontsize=13)
+    plt.title(title, fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
+    
+    if log_scale:
+        plt.yscale('log')
+    
+    # Annotate points
+    for cd, val in zip(cd_values, metric_values):
+        plt.annotate(f'{val:.2f}', (cd, val), 
+                    textcoords="offset points", xytext=(0,10), 
+                    ha='center', fontsize=9)
+    
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches='tight', dpi=150)
+    plt.close()
+
+
+def plot_cd_vs_pcd_comparison(
+    cd_results: dict,
+    pcd_results: dict,
+    save_path: str,
+    metric_name: str = 'FID',
+    title: str = 'CD vs PCD Comparison'
+):
+    """
+    Compare CD-k vs PCD-k performance.
+    
+    Args:
+        cd_results: Dict of CD-k -> metric value
+        pcd_results: Dict of PCD-k -> metric value
+        save_path: Path to save plot
+        metric_name: Name of metric
+        title: Plot title
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    # Get common k values
+    k_values = sorted(set(cd_results.keys()) & set(pcd_results.keys()))
+    
+    cd_vals = [cd_results[k] for k in k_values]
+    pcd_vals = [pcd_results[k] for k in k_values]
+    
+    plt.figure(figsize=(10, 6))
+    
+    plt.plot(k_values, cd_vals, 'o-', linewidth=2.5, markersize=10, 
+             label='CD-k', color='steelblue')
+    plt.plot(k_values, pcd_vals, 's-', linewidth=2.5, markersize=10, 
+             label='PCD-k', color='coral')
+    
+    plt.xlabel('Number of Steps (k)', fontsize=13)
+    plt.ylabel(metric_name, fontsize=13)
+    plt.title(title, fontsize=14, fontweight='bold')
+    plt.legend(fontsize=12)
+    plt.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches='tight', dpi=150)
+    plt.close()
+
+
+def plot_compute_vs_quality(
+    cd_steps: list,
+    training_times: list,
+    quality_scores: list,
+    save_path: str,
+    quality_metric: str = 'FID',
+    better_lower: bool = True
+):
+    """
+    Plot compute cost vs quality tradeoff.
+    
+    Args:
+        cd_steps: List of CD-k values
+        training_times: List of training times (hours)
+        quality_scores: List of quality scores
+        save_path: Path to save plot
+        quality_metric: Name of quality metric
+        better_lower: Whether lower is better for quality metric
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
+    
+    # Training time vs CD-k
+    ax1.plot(cd_steps, training_times, 'o-', linewidth=2.5, markersize=10, color='steelblue')
+    ax1.set_xlabel('CD-k Steps', fontsize=12)
+    ax1.set_ylabel('Training Time (hours)', fontsize=12)
+    ax1.set_title('Training Time vs CD-k', fontsize=13, fontweight='bold')
+    ax1.grid(True, alpha=0.3)
+    
+    # Quality vs CD-k
+    color = 'green' if better_lower else 'red'
+    ax2.plot(cd_steps, quality_scores, 'o-', linewidth=2.5, markersize=10, color=color)
+    ax2.set_xlabel('CD-k Steps', fontsize=12)
+    ax2.set_ylabel(f'{quality_metric} Score', fontsize=12)
+    ax2.set_title(f'{quality_metric} vs CD-k', fontsize=13, fontweight='bold')
+    ax2.grid(True, alpha=0.3)
+    
+    # Efficiency: Quality per hour
+    efficiency = np.array(quality_scores) / np.array(training_times)
+    if better_lower:
+        efficiency = 1 / efficiency  # Invert for "lower is better" metrics
+    
+    ax3.plot(cd_steps, efficiency, 'o-', linewidth=2.5, markersize=10, color='purple')
+    ax3.set_xlabel('CD-k Steps', fontsize=12)
+    ax3.set_ylabel('Quality per Hour', fontsize=12)
+    ax3.set_title('Training Efficiency', fontsize=13, fontweight='bold')
+    ax3.grid(True, alpha=0.3)
+    
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches='tight', dpi=150)
+    plt.close()
+
+
+# ============================================================================
+# Energy and MCMC Diagnostics
+# ============================================================================
+
 def plot_energy_histogram(
     energies_real: np.ndarray,
     energies_fake: np.ndarray,
     save_path: str,
     title: str = "Energy Distribution"
 ):
-    """
-    Plot histogram of energies.
-    
-    Args:
-        energies_real: Energies of real data
-        energies_fake: Energies of generated samples
-        save_path: Path to save plot
-        title: Plot title
-    """
+    """Plot histogram of energies for real and generated samples."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
     plt.figure(figsize=(10, 6))
-    plt.hist(energies_real, bins=50, alpha=0.6, label='Real Data', density=True)
-    plt.hist(energies_fake, bins=50, alpha=0.6, label='Generated', density=True)
-    plt.xlabel('Energy')
-    plt.ylabel('Density')
-    plt.title(title)
-    plt.legend()
+    plt.hist(energies_real, bins=50, alpha=0.6, label='Real Data', 
+             density=True, color='steelblue')
+    plt.hist(energies_fake, bins=50, alpha=0.6, label='Generated', 
+             density=True, color='coral')
+    
+    # Add mean lines
+    plt.axvline(energies_real.mean(), color='steelblue', 
+                linestyle='--', linewidth=2, alpha=0.8)
+    plt.axvline(energies_fake.mean(), color='coral', 
+                linestyle='--', linewidth=2, alpha=0.8)
+    
+    plt.xlabel('Energy', fontsize=13)
+    plt.ylabel('Density', fontsize=13)
+    plt.title(title, fontsize=14, fontweight='bold')
+    plt.legend(fontsize=11)
     plt.grid(True, alpha=0.3)
+    
+    # Add statistics text
+    stats_text = f"Real: μ={energies_real.mean():.2f}, σ={energies_real.std():.2f}\n"
+    stats_text += f"Gen: μ={energies_fake.mean():.2f}, σ={energies_fake.std():.2f}"
+    plt.text(0.02, 0.98, stats_text, transform=plt.gca().transAxes,
+             fontsize=10, verticalalignment='top',
+             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches='tight', dpi=150)
     plt.close()
@@ -130,34 +282,76 @@ def plot_autocorrelation(
     title: str = "Energy Autocorrelation",
     max_lag: Optional[int] = None
 ):
-    """
-    Plot autocorrelation function.
-    
-    Args:
-        autocorr: Autocorrelation values
-        save_path: Path to save plot
-        title: Plot title
-        max_lag: Maximum lag to plot
-    """
+    """Plot autocorrelation function."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
     if max_lag is not None:
         autocorr = autocorr[:max_lag]
     
     plt.figure(figsize=(10, 6))
-    plt.plot(autocorr, linewidth=2)
-    plt.axhline(y=0, color='k', linestyle='--', alpha=0.3)
-    plt.axhline(y=0.1, color='r', linestyle='--', alpha=0.3, label='Threshold (0.1)')
-    plt.axhline(y=-0.1, color='r', linestyle='--', alpha=0.3)
-    plt.xlabel('Lag')
-    plt.ylabel('Autocorrelation')
-    plt.title(title)
-    plt.legend()
+    plt.plot(autocorr, linewidth=2.5, color='steelblue')
+    plt.axhline(y=0, color='k', linestyle='-', alpha=0.3, linewidth=1)
+    plt.axhline(y=0.1, color='r', linestyle='--', alpha=0.5, 
+                linewidth=2, label='Threshold (±0.1)')
+    plt.axhline(y=-0.1, color='r', linestyle='--', alpha=0.5, linewidth=2)
+    
+    plt.xlabel('Lag', fontsize=13)
+    plt.ylabel('Autocorrelation', fontsize=13)
+    plt.title(title, fontsize=14, fontweight='bold')
+    plt.legend(fontsize=11)
     plt.grid(True, alpha=0.3)
+    plt.ylim([-0.3, 1.1])
+    
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches='tight', dpi=150)
     plt.close()
 
+
+def plot_multiple_autocorrelations(
+    autocorr_dict: dict,
+    save_path: str,
+    title: str = "Autocorrelation Comparison",
+    max_lag: Optional[int] = None
+):
+    """
+    Plot multiple autocorrelation functions for comparison.
+    
+    Args:
+        autocorr_dict: Dict mapping label to autocorrelation array
+        save_path: Path to save plot
+        title: Plot title
+        max_lag: Maximum lag to plot
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    plt.figure(figsize=(12, 6))
+    
+    colors = plt.cm.viridis(np.linspace(0, 0.9, len(autocorr_dict)))
+    
+    for (label, autocorr), color in zip(autocorr_dict.items(), colors):
+        if max_lag is not None:
+            autocorr = autocorr[:max_lag]
+        plt.plot(autocorr, linewidth=2.5, label=label, color=color)
+    
+    plt.axhline(y=0, color='k', linestyle='-', alpha=0.3, linewidth=1)
+    plt.axhline(y=0.1, color='r', linestyle='--', alpha=0.5, linewidth=1.5)
+    plt.axhline(y=-0.1, color='r', linestyle='--', alpha=0.5, linewidth=1.5)
+    
+    plt.xlabel('Lag', fontsize=13)
+    plt.ylabel('Autocorrelation', fontsize=13)
+    plt.title(title, fontsize=14, fontweight='bold')
+    plt.legend(fontsize=10, loc='upper right')
+    plt.grid(True, alpha=0.3)
+    plt.ylim([-0.3, 1.1])
+    
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches='tight', dpi=150)
+    plt.close()
+
+
+# ============================================================================
+# RBM-specific Plots
+# ============================================================================
 
 def plot_weight_filters(
     weights: torch.Tensor,
@@ -166,16 +360,7 @@ def plot_weight_filters(
     img_shape: Tuple[int, int] = (28, 28),
     title: str = "RBM Weight Filters"
 ):
-    """
-    Visualize RBM weight filters.
-    
-    Args:
-        weights: Weight matrix [n_visible, n_hidden]
-        save_path: Path to save plot
-        num_filters: Number of filters to show
-        img_shape: Shape to reshape filters to
-        title: Plot title
-    """
+    """Visualize RBM weight filters."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
     weights = weights.cpu().numpy()
@@ -197,14 +382,13 @@ def plot_weight_filters(
     nrow = int(np.ceil(np.sqrt(n_hidden)))
     ncol = int(np.ceil(n_hidden / nrow))
     
-    fig, axes = plt.subplots(nrow, ncol, figsize=(ncol*2, nrow*2))
+    fig, axes = plt.subplots(nrow, ncol, figsize=(ncol*1.5, nrow*1.5))
     axes = axes.flatten()
     
     for idx in range(n_hidden):
         axes[idx].imshow(filters[idx], cmap='gray')
         axes[idx].axis('off')
     
-    # Hide extra subplots
     for idx in range(n_hidden, len(axes)):
         axes[idx].axis('off')
     
@@ -220,15 +404,7 @@ def plot_reconstruction(
     save_path: str,
     num_samples: int = 8
 ):
-    """
-    Plot original vs reconstructed images.
-    
-    Args:
-        original: Original images [N, C, H, W]
-        reconstructed: Reconstructed images [N, C, H, W]
-        save_path: Path to save plot
-        num_samples: Number of samples to show
-    """
+    """Plot original vs reconstructed images."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
     num_samples = min(num_samples, original.size(0))
@@ -246,7 +422,7 @@ def plot_reconstruction(
             axes[0, idx].imshow(img_orig)
         axes[0, idx].axis('off')
         if idx == 0:
-            axes[0, idx].set_title('Original', fontsize=12)
+            axes[0, idx].set_title('Original', fontsize=12, fontweight='bold')
         
         # Reconstructed
         img_recon = reconstructed[idx].cpu().numpy()
@@ -258,12 +434,16 @@ def plot_reconstruction(
             axes[1, idx].imshow(img_recon)
         axes[1, idx].axis('off')
         if idx == 0:
-            axes[1, idx].set_title('Reconstructed', fontsize=12)
+            axes[1, idx].set_title('Reconstructed', fontsize=12, fontweight='bold')
     
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches='tight', dpi=150)
     plt.close()
 
+
+# ============================================================================
+# Sampling Trajectories
+# ============================================================================
 
 def plot_sampling_trajectory(
     samples: List[torch.Tensor],
@@ -271,15 +451,7 @@ def plot_sampling_trajectory(
     num_chains: int = 5,
     title: str = "Sampling Trajectory"
 ):
-    """
-    Plot MCMC sampling trajectory.
-    
-    Args:
-        samples: List of sample tensors at different steps
-        save_path: Path to save plot
-        num_chains: Number of chains to visualize
-        title: Plot title
-    """
+    """Plot MCMC sampling trajectory."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
     num_steps = len(samples)
@@ -295,14 +467,14 @@ def plot_sampling_trajectory(
         for step_idx, sample_batch in enumerate(samples):
             img = sample_batch[chain_idx].cpu().numpy()
             
-            if img.ndim == 3:  # [C, H, W]
+            if img.ndim == 3:
                 if img.shape[0] == 1:
                     img = img.squeeze()
                     axes[chain_idx, step_idx].imshow(img, cmap='gray')
                 else:
                     img = img.transpose(1, 2, 0)
-                    axes[chain_idx, step_idx].imshow(img)
-            else:  # Flattened
+                    axes[chain_idx, step_idx].imshow(np.clip(img, 0, 1))
+            else:
                 size = int(np.sqrt(img.shape[0]))
                 img = img.reshape(size, size)
                 axes[chain_idx, step_idx].imshow(img, cmap='gray')
@@ -319,73 +491,108 @@ def plot_sampling_trajectory(
     plt.close()
 
 
-def plot_cd_comparison(
-    results_dict: dict,
+def plot_energy_trajectory(
+    energy_history: list,
     save_path: str,
-    metric_name: str = 'fid',
-    title: str = 'CD-k Comparison'
+    title: str = "Energy During Sampling"
 ):
-    """
-    Compare metrics across different CD-k values.
-    
-    Args:
-        results_dict: Dict mapping CD-k to metric value
-        save_path: Path to save plot
-        metric_name: Name of metric being compared
-        title: Plot title
-    """
+    """Plot energy evolution during sampling."""
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
-    cd_values = sorted(results_dict.keys())
-    metric_values = [results_dict[k] for k in cd_values]
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(cd_values, metric_values, 'o-', linewidth=2, markersize=8)
-    plt.xlabel('CD-k Steps', fontsize=12)
-    plt.ylabel(metric_name.upper(), fontsize=12)
+    plt.figure(figsize=(12, 6))
+    plt.plot(energy_history, linewidth=2, color='steelblue')
+    plt.xlabel('Sampling Step', fontsize=13)
+    plt.ylabel('Energy', fontsize=13)
     plt.title(title, fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
+    
+    # Add moving average
+    window = min(20, len(energy_history) // 10)
+    if window > 1:
+        moving_avg = np.convolve(energy_history, 
+                                np.ones(window)/window, mode='valid')
+        plt.plot(range(window-1, len(energy_history)), moving_avg, 
+                linewidth=2.5, color='coral', alpha=0.8, 
+                label=f'Moving Avg (window={window})')
+        plt.legend(fontsize=11)
+    
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches='tight', dpi=150)
     plt.close()
 
 
-def plot_compute_vs_quality(
-    cd_steps: list,
-    training_times: list,
-    quality_scores: list,
+# ============================================================================
+# Ablation Study Plots
+# ============================================================================
+
+def plot_ablation_study(
+    param_values: list,
+    metric_values: list,
     save_path: str,
-    quality_metric: str = 'FID'
+    param_name: str = 'Parameter',
+    metric_name: str = 'Metric',
+    title: str = 'Ablation Study'
 ):
     """
-    Plot compute cost vs quality tradeoff.
+    Plot ablation study results.
     
     Args:
-        cd_steps: List of CD-k values
-        training_times: List of training times (hours)
-        quality_scores: List of quality scores
+        param_values: List of parameter values tested
+        metric_values: List of corresponding metric values
         save_path: Path to save plot
-        quality_metric: Name of quality metric
+        param_name: Name of parameter being varied
+        metric_name: Name of metric being measured
+        title: Plot title
     """
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
     
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
+    plt.figure(figsize=(10, 6))
+    plt.plot(param_values, metric_values, 'o-', linewidth=2.5, 
+             markersize=10, color='steelblue')
     
-    # Training time vs CD-k
-    ax1.plot(cd_steps, training_times, 'o-', linewidth=2, markersize=8, color='steelblue')
-    ax1.set_xlabel('CD-k Steps', fontsize=12)
-    ax1.set_ylabel('Training Time (hours)', fontsize=12)
-    ax1.set_title('Training Time vs CD-k', fontsize=13, fontweight='bold')
-    ax1.grid(True, alpha=0.3)
+    plt.xlabel(param_name, fontsize=13)
+    plt.ylabel(metric_name, fontsize=13)
+    plt.title(title, fontsize=14, fontweight='bold')
+    plt.grid(True, alpha=0.3)
     
-    # Quality vs CD-k
-    better_lower = (quality_metric.lower() == 'fid')
-    color = 'green' if not better_lower else 'red'
-    ax2.plot(cd_steps, quality_scores, 'o-', linewidth=2, markersize=8, color=color)
-    ax2.set_xlabel('CD-k Steps', fontsize=12)
-    ax2.set_ylabel(f'{quality_metric} Score', fontsize=12)
-    ax2.set_title(f'{quality_metric} vs CD-k', fontsize=13, fontweight='bold')
-    ax2.grid(True, alpha=0.3)
+    # Annotate best value
+    best_idx = np.argmin(metric_values)
+    plt.plot(param_values[best_idx], metric_values[best_idx], 
+             'r*', markersize=20, label='Best')
+    plt.legend(fontsize=11)
+    
+    plt.tight_layout()
+    plt.savefig(save_path, bbox_inches='tight', dpi=150)
+    plt.close()
+
+
+# ============================================================================
+# Summary Dashboard
+# ============================================================================
+
+def create_experiment_dashboard(
+    experiment_results: dict,
+    save_path: str,
+    title: str = "Experiment Dashboard"
+):
+    """
+    Create comprehensive dashboard for experiment results.
+    
+    Args:
+        experiment_results: Dict containing all experiment metrics
+        save_path: Path to save dashboard
+        title: Dashboard title
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    
+    fig = plt.figure(figsize=(20, 12))
+    gs = GridSpec(3, 3, figure=fig, hspace=0.3, wspace=0.3)
+    
+    # Title
+    fig.suptitle(title, fontsize=18, fontweight='bold')
+    
+    # Placeholder plots - customize based on available data
+    # This is a template that can be filled with actual experiment data
     
     plt.tight_layout()
     plt.savefig(save_path, bbox_inches='tight', dpi=150)
@@ -393,29 +600,39 @@ def plot_compute_vs_quality(
 
 
 if __name__ == "__main__":
-    print("Testing plotting functions...")
+    print("Testing comprehensive plotting functions...")
     
-    # Test image grid
-    images = torch.randn(16, 1, 28, 28)
-    save_image_grid(images, './test_plots/grid.png')
-    print("✓ Image grid saved")
-    
-    # Test training curves
-    metrics = {
-        'loss': {i: np.random.rand() for i in range(20)},
-        'energy': {i: np.random.rand() * 10 for i in range(20)}
-    }
-    plot_training_curves(metrics, './test_plots/curves.png')
-    print("✓ Training curves saved")
-    
-    # Test autocorrelation
-    autocorr = np.exp(-np.arange(100) / 20)
-    plot_autocorrelation(autocorr, './test_plots/autocorr.png')
-    print("✓ Autocorrelation plot saved")
+    os.makedirs('./test_plots', exist_ok=True)
     
     # Test CD comparison
     cd_results = {1: 45.2, 5: 38.5, 10: 35.1, 20: 33.8}
-    plot_cd_comparison(cd_results, './test_plots/cd_comparison.png')
-    print("✓ CD comparison saved")
+    plot_cd_comparison(cd_results, './test_plots/cd_comparison.png', 
+                       metric_name='fid', title='FID vs CD-k')
+    print("✓ CD comparison plot saved")
+    
+    # Test CD vs PCD
+    pcd_results = {1: 42.0, 5: 36.2, 10: 33.5}
+    plot_cd_vs_pcd_comparison(cd_results, pcd_results, 
+                              './test_plots/cd_vs_pcd.png')
+    print("✓ CD vs PCD comparison saved")
+    
+    # Test compute vs quality
+    plot_compute_vs_quality(
+        [1, 5, 10, 20],
+        [2.0, 3.0, 4.0, 5.5],
+        [45.2, 38.5, 35.1, 33.8],
+        './test_plots/compute_vs_quality.png'
+    )
+    print("✓ Compute vs quality plot saved")
+    
+    # Test multiple autocorrelations
+    autocorr_dict = {
+        'CD-1': np.exp(-np.arange(50) / 5),
+        'CD-5': np.exp(-np.arange(50) / 10),
+        'CD-10': np.exp(-np.arange(50) / 15)
+    }
+    plot_multiple_autocorrelations(autocorr_dict, 
+                                   './test_plots/multiple_autocorr.png')
+    print("✓ Multiple autocorrelation plot saved")
     
     print("\n✅ All plotting tests passed!")
