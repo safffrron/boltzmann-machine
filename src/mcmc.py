@@ -208,26 +208,22 @@ class LangevinSampler:
         num_steps: int = 20,
         return_trajectory: bool = False
     ) -> torch.Tensor:
-        """
-        Sample using Langevin dynamics.
-        """
-        x = init_samples.clone().to(self.device)
-        x.requires_grad = True
+
+        # Make x a leaf tensor and enable grad
+        x = init_samples.clone().to(self.device).detach()
+        x.requires_grad_(True)
 
         trajectory = [x.detach().cpu().clone()] if return_trajectory else None
 
         for _ in range(num_steps):
 
-            # Ensure x requires grad
-            x.requires_grad_(True)
-
-            # Forward pass
+            # Energy
             energy = energy_fn(x).sum()
 
-            # Compute gradient wrt x
+            # Gradient wrt input
             grad = torch.autograd.grad(energy, x, create_graph=False)[0]
 
-            # Clip gradients for stability
+            # Clip grad
             if self.clip_grad is not None:
                 grad = torch.clamp(grad, -self.clip_grad, self.clip_grad)
 
@@ -235,20 +231,24 @@ class LangevinSampler:
             noise = torch.randn_like(x) * self.noise_scale
             x = x - self.step_size * grad + noise
 
-            # Clamp to valid pixel range
+            # Clip to image range
             x = torch.clamp(x, -1, 1)
 
-            # Detach to avoid graph accumulation
+            # Detach so graph does NOT accumulate
             x = x.detach()
 
-            # 🔥 MISSING LINE — you MUST add this
+            # Re-enable gradient for next step
+            x.requires_grad_(True)
+
+            # Save to trajectory
             if return_trajectory:
                 trajectory.append(x.cpu().clone())
 
         if return_trajectory:
             return torch.stack(trajectory)
 
-        return x
+        return x.detach()
+
 
     
     def sample_with_diagnostics(
