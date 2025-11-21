@@ -1,0 +1,48 @@
+# ============================================================================
+# configs/conv_cifar_cd5.yaml
+# Small Conv-EBM with CD-5 on CIFAR-10 - Fast baseline
+# Kaggle: ~4GB GPU, ~4-5 hours
+# ============================================================================
+exp_name: conv_cifar_cd5
+dataset: cifar10
+batch_size: 64
+augment: true
+
+# Model architecture
+model_size: small  # ~4M parameters
+spectral_norm: true
+
+# Optimizer
+learning_rate: 0.0001
+beta1: 0.0
+beta2: 0.999
+weight_decay: 0.0
+grad_clip: 0.1
+
+# Langevin sampling
+langevin_steps: 5
+langevin_step_size: 0.01
+langevin_noise: 0.005
+langevin_clip: 0.01
+
+# CD settings
+use_pcd: false
+reinit_prob: 0.05
+
+# Training
+epochs: 50
+seed: 42
+
+# Learning rate schedule
+lr_schedule:
+  30: 0.00005
+  40: 0.00001
+
+# Logging and saving
+save_every: 5
+sample_every: 5
+sample_steps: 200
+
+# Paths
+output_dir: ./results
+data_dir: ./data

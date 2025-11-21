@@ -1,0 +1,35 @@
+# ============================================================================
+# configs/rbm_mnist_pcd1.yaml
+# RBM with PCD-1 on MNIST
+# Kaggle: ~3GB GPU (buffer), ~3 hours
+# ============================================================================
+exp_name: rbm_mnist_pcd1
+dataset: mnist
+batch_size: 128
+binarize: true
+
+n_hidden: 256
+
+learning_rate: 0.01
+momentum: 0.5
+final_momentum: 0.9
+momentum_epoch: 5
+weight_decay: 0.0001
+
+cd_k: 1
+use_pcd: true
+pcd_buffer_size: 5000  # Kept reasonable for Kaggle memory
+
+epochs: 30
+seed: 42
+
+lr_schedule:
+  15: 0.005
+  25: 0.001
+
+save_every: 5
+sample_every: 5
+sample_steps: 500
+
+output_dir: ./results
+data_dir: ./data
