@@ -115,7 +115,7 @@ def save_checkpoint(
 ):
     """
     Save model checkpoint.
-
+    
     Args:
         model: Model to save
         optimizer: Optimizer state (can be None)
@@ -125,23 +125,21 @@ def save_checkpoint(
         additional_info: Additional information to save
     """
     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
+    
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
         'loss': loss,
     }
-
-    # Only add optimizer state if it exists
+    
+    # Only save optimizer state if provided
     if optimizer is not None:
         checkpoint['optimizer_state_dict'] = optimizer.state_dict()
-
-    # Add any extra metadata
+    
     if additional_info:
         checkpoint.update(additional_info)
-
+    
     torch.save(checkpoint, save_path)
-
 
 
 def load_checkpoint(
