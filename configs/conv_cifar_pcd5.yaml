@@ -1,0 +1,41 @@
+# ============================================================================
+# configs/conv_cifar_pcd5.yaml
+# Small Conv-EBM with PCD-5 on CIFAR-10
+# Kaggle: ~6GB GPU (buffer), ~5-6 hours
+# ============================================================================
+exp_name: conv_cifar_pcd5
+dataset: cifar10
+batch_size: 64
+augment: true
+
+model_size: small
+spectral_norm: true
+
+learning_rate: 0.0001
+beta1: 0.0
+beta2: 0.999
+weight_decay: 0.0
+grad_clip: 0.1
+
+langevin_steps: 5
+langevin_step_size: 0.01
+langevin_noise: 0.005
+langevin_clip: 0.01
+
+use_pcd: true
+buffer_size: 5000  # Kept reasonable for Kaggle
+reinit_prob: 0.05
+
+epochs: 50
+seed: 42
+
+lr_schedule:
+  30: 0.00005
+  40: 0.00001
+
+save_every: 5
+sample_every: 5
+sample_steps: 200
+
+output_dir: ./results
+data_dir: ./data

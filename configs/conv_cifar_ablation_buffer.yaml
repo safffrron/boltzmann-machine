@@ -1,0 +1,36 @@
+# ============================================================================
+# configs/conv_cifar_ablation_buffer.yaml
+# Ablation: Vary replay buffer size (PCD)
+# ============================================================================
+exp_name: conv_cifar_ablation_buffer
+dataset: cifar10
+batch_size: 64
+augment: true
+
+model_size: small
+spectral_norm: true
+
+learning_rate: 0.0001
+beta1: 0.0
+beta2: 0.999
+weight_decay: 0.0
+grad_clip: 0.1
+
+langevin_steps: 10
+langevin_step_size: 0.01
+langevin_noise: 0.005
+langevin_clip: 0.01
+
+use_pcd: true
+buffer_size: 5000  # Try: 1000, 3000, 5000, 10000
+reinit_prob: 0.05
+
+epochs: 30
+seed: 42
+
+save_every: 5
+sample_every: 5
+sample_steps: 200
+
+output_dir: ./results
+data_dir: ./data

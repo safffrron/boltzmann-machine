@@ -1,0 +1,39 @@
+# ============================================================================
+# configs/conv_cifar_tiny_cd5.yaml
+# Tiny Conv-EBM for very fast experiments
+# Kaggle: ~2GB GPU, ~2-3 hours
+# ============================================================================
+exp_name: conv_cifar_tiny_cd5
+dataset: cifar10
+batch_size: 128
+augment: true
+
+model_size: tiny  # ~1M parameters
+spectral_norm: false
+
+learning_rate: 0.0001
+beta1: 0.0
+beta2: 0.999
+weight_decay: 0.0
+grad_clip: 0.1
+
+langevin_steps: 5
+langevin_step_size: 0.01
+langevin_noise: 0.005
+langevin_clip: 0.01
+
+use_pcd: false
+reinit_prob: 0.05
+
+epochs: 30
+seed: 42
+
+lr_schedule:
+  20: 0.00005
+
+save_every: 5
+sample_every: 5
+sample_steps: 150
+
+output_dir: ./results
+data_dir: ./data
