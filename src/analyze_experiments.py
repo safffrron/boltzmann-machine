@@ -68,6 +68,8 @@ def extract_cd_k_from_name(exp_name: str) -> int:
         return 10
     elif 'cd20' in exp_name.lower():
         return 20
+    elif 'cd30' in exp_name.lower():
+        return 30
     elif 'cd100' in exp_name.lower():
         return 100
     return None
