@@ -116,121 +116,113 @@ def sample_conv_ebm(
 ):
     """
     Generate samples from trained Conv-EBM.
-    
-    Args:
-        checkpoint_path: Path to model checkpoint
-        config_path: Path to config file
-        num_samples: Number of samples to generate
-        num_steps: Number of Langevin steps
-        output_dir: Directory to save samples
-        save_trajectory: Whether to save sampling trajectory
-        device: Device to use
     """
+
     if device is None:
         device = get_device()
-    
+
     print(f"Loading Conv-EBM from {checkpoint_path}...")
-    
+
     # Load config
     config = load_config(config_path)
-    
+
     # Build model
     model = build_conv_ebm(
         model_size=config.get('model_size', 'small'),
         input_channels=3,
         spectral_norm=config.get('spectral_norm', True)
     ).to(device)
-    
-    # Load checkpoint
-    checkpoint = load_checkpoint(checkpoint_path, model, device=device)
+
+    # Load weights from checkpoint
+    load_checkpoint(checkpoint_path, model, device=device)
     model.eval()
-    
+
     print(f"Model loaded: {config.get('model_size', 'small')} ConvEBM")
     print(f"Generating {num_samples} samples with {num_steps} Langevin steps...")
-    
+
     os.makedirs(output_dir, exist_ok=True)
-    
-    # Initialize Langevin sampler
+
+    # Langevin sampler
     sampler = LangevinSampler(
         step_size=config.get('langevin_step_size', 0.01),
         noise_scale=config.get('langevin_noise', 0.005),
         clip_grad=config.get('langevin_clip', 0.01),
         device=device
     )
-    
-    # Generate samples in batches
+
+    # Generate samples
     batch_size = 64
     all_samples = []
-    
-    with torch.no_grad():
-        for i in tqdm(range(0, num_samples, batch_size), desc="Generating"):
-            batch_num = min(batch_size, num_samples - i)
-            
-            # Initialize samples
-            init_samples = initialize_samples(
-                batch_num,
-                (3, 32, 32),
-                method='uniform',
-                device=device
+
+    for i in tqdm(range(0, num_samples, batch_size), desc="Generating"):
+        bs = min(batch_size, num_samples - i)
+
+        # -------------------------------
+        #  (1) Initialize samples
+        # -------------------------------
+        init_samples = initialize_samples(
+            bs,
+            (3, 32, 32),
+            method='uniform',
+            device=device
+        )
+
+        # -------------------------------
+        #  (2) Langevin sampling (GRAD ON!)
+        # -------------------------------
+        if save_trajectory and i == 0:
+            # Save trajectory for first mini-batch
+            traj = sampler.sample(
+                energy_fn=model,
+                init_samples=init_samples[:16],
+                num_steps=num_steps,
+                return_trajectory=True
             )
-            
-            # Run Langevin dynamics
-            if save_trajectory and i == 0:
-                # Save trajectory for first batch
-                samples = sampler.sample(
-                    energy_fn=model,
-                    init_samples=init_samples[:16],
-                    num_steps=num_steps,
-                    return_trajectory=True
-                )
-                
-                # Select keyframes
-                n_frames = min(10, samples.size(0))
-                indices = np.linspace(0, samples.size(0)-1, n_frames, dtype=int)
-                trajectory = [samples[i] for i in indices]
-                
-                # Denormalize
-                trajectory = [(t + 1) / 2 for t in trajectory]
-                
-                # Save trajectory
-                traj_path = os.path.join(output_dir, 'sampling_trajectory.png')
-                plot_sampling_trajectory(trajectory, traj_path, num_chains=5)
-                print(f"\nSaved trajectory to {traj_path}")
-                
-                # Continue with rest of samples
-                samples = sampler.sample(
-                    energy_fn=model,
-                    init_samples=init_samples,
-                    num_steps=num_steps
-                )
-            else:
-                samples = sampler.sample(
-                    energy_fn=model,
-                    init_samples=init_samples,
-                    num_steps=num_steps
-                )
-            
-            # Denormalize to [0, 1]
+
+            # Convert trajectory to [0,1]
+            with torch.no_grad():
+                traj = (traj + 1) / 2
+                traj = torch.clamp(traj, 0, 1)
+
+            # Save trajectory plot
+            traj_path = os.path.join(output_dir, "sampling_trajectory.png")
+            plot_sampling_trajectory(
+                [traj[j] for j in range(0, traj.size(0), max(1, traj.size(0)//10))],
+                traj_path,
+                num_chains=5
+            )
+            print(f"Saved trajectory to {traj_path}")
+
+        # Perform actual Langevin sampling for this batch
+        samples = sampler.sample(
+            energy_fn=model,
+            init_samples=init_samples,
+            num_steps=num_steps
+        )
+
+        # -------------------------------
+        #  (3) Postprocess (NO GRAD)
+        # -------------------------------
+        with torch.no_grad():
             samples = (samples + 1) / 2
             samples = torch.clamp(samples, 0, 1)
-            
             all_samples.append(samples.cpu())
-    
+
     # Concatenate all samples
     all_samples = torch.cat(all_samples, dim=0)
-    
+
     # Save grid
-    grid_path = os.path.join(output_dir, f'conv_ebm_samples_{num_samples}.png')
+    grid_path = os.path.join(output_dir, f"conv_ebm_samples_{num_samples}.png")
     save_image_grid(all_samples, grid_path, nrow=10, normalize=False)
     print(f"Saved samples to {grid_path}")
-    
-    # Save as numpy
-    samples_np = all_samples.numpy()
-    np_path = os.path.join(output_dir, f'conv_ebm_samples_{num_samples}.npy')
-    np.save(np_path, samples_np)
+
+    # Save numpy version
+    np_path = os.path.join(output_dir, f"conv_ebm_samples_{num_samples}.npy")
+    np.save(np_path, all_samples.numpy())
     print(f"Saved numpy samples to {np_path}")
-    
+
     return all_samples
+
 
 
 def main():
