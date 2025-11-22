@@ -251,10 +251,19 @@ def evaluate_conv_ebm(
         print("\n2. Computing Inception Score...")
         try:
             is_calc = InceptionScoreCalculator(device=device, splits=10)
+            # Resize to 299x299
+            samples_resized = F.interpolate(
+                samples_normalized,
+                size=(299, 299),
+                mode='bilinear',
+                align_corners=False
+            )
+
             is_mean, is_std = is_calc.calculate_inception_score(
-                samples_normalized.to(device),
+                samples_resized.to(device),
                 batch_size=32
             )
+
             results['inception_score_mean'] = float(is_mean)
             results['inception_score_std'] = float(is_std)
             print(f"   Inception Score: {is_mean:.4f} ± {is_std:.4f}")
@@ -268,6 +277,13 @@ def evaluate_conv_ebm(
         print("\n3. Computing LPIPS diversity...")
         try:
             lpips_calc = LPIPSDiversity(device=device, net='alex')
+            samples_lpips = F.interpolate(
+                samples_normalized,
+                size=(64, 64),      # Recommended input resolution for LPIPS
+                mode='bilinear',
+                align_corners=False
+            )
+
             diversity = lpips_calc.compute_diversity(
                 samples_normalized.to(device),
                 num_pairs=min(1000, num_samples * (num_samples - 1) // 2)
@@ -297,26 +313,31 @@ def evaluate_conv_ebm(
     # 5. MCMC diagnostics
     print("\n5. Computing MCMC diagnostics...")
     print("   Sampling trajectory and computing autocorrelation...")
-    
+
     sampler = LangevinSampler(
         step_size=config.get('langevin_step_size', 0.01),
         noise_scale=config.get('langevin_noise', 0.005),
         clip_grad=config.get('langevin_clip', 0.01),
         device=device
     )
-    
-    # Sample and track energies
+
     init_samples = initialize_samples(10, (3, 32, 32), device=device)
     energies = []
-    
+
     x = init_samples
-    with torch.no_grad():
-        for step in tqdm(range(200), desc="   Sampling"):
-            energy = model(x).mean().item()
-            energies.append(energy)
-            x = sampler.sample(model, x, num_steps=1)
-    
-    energies = np.array(energies)
+
+    for step in tqdm(range(200), desc="   Sampling"):
+        # Compute energy WITHOUT grad
+        with torch.no_grad():
+            energies.append(model(x).mean().item())
+
+        # Langevin sampling WITH grad
+        x = sampler.sample(
+            energy_fn=model,
+            init_samples=x,
+            num_steps=1
+        )
+
     
     # Autocorrelation
     autocorr = energy_autocorrelation(energies, max_lag=50)

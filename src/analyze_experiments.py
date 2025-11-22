@@ -22,13 +22,6 @@ from utils import load_dict_from_json
 def load_experiment_results(results_dir: str, pattern: str = "*") -> Dict:
     """
     Load all experiment results from directory.
-    
-    Args:
-        results_dir: Directory containing experiment results
-        pattern: Pattern to match experiment folders
-        
-    Returns:
-        Dictionary mapping experiment name to results
     """
     results = {}
     results_path = Path(results_dir)
@@ -38,24 +31,34 @@ def load_experiment_results(results_dir: str, pattern: str = "*") -> Dict:
             continue
         
         exp_name = exp_dir.name
+        exp_data = {}  # always create a dict
         
-        # Load metrics
+        # -------------------------------
+        # Load metrics if available
+        # -------------------------------
         metrics_file = exp_dir / 'logs' / f'{exp_name}_metrics.json'
         if metrics_file.exists():
-            results[exp_name] = {
-                'metrics': load_dict_from_json(str(metrics_file))
-            }
+            exp_data['metrics'] = load_dict_from_json(str(metrics_file))
         
-        # Load evaluation results if available
+        # -------------------------------
+        # Load evaluation if available
+        # -------------------------------
         eval_file_rbm = exp_dir / 'evaluation' / 'rbm_evaluation.json'
         eval_file_conv = exp_dir / 'evaluation' / 'conv_ebm_evaluation.json'
         
         if eval_file_rbm.exists():
-            results[exp_name]['evaluation'] = load_dict_from_json(str(eval_file_rbm))
+            exp_data['evaluation'] = load_dict_from_json(str(eval_file_rbm))
         elif eval_file_conv.exists():
-            results[exp_name]['evaluation'] = load_dict_from_json(str(eval_file_conv))
+            exp_data['evaluation'] = load_dict_from_json(str(eval_file_conv))
+        
+        # -------------------------------
+        # Only add to results if something exists
+        # -------------------------------
+        if exp_data:
+            results[exp_name] = exp_data
     
     return results
+
 
 
 def extract_cd_k_from_name(exp_name: str) -> int:
