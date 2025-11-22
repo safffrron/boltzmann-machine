@@ -124,7 +124,7 @@ class FIDCalculator:
 
 
 # ============================================================================
-# Inception Score (IS)
+# Inception Score (FIXED VERSION)
 # ============================================================================
 
 class InceptionScoreCalculator:
@@ -143,17 +143,19 @@ class InceptionScoreCalculator:
         
         self.device = device
         self.splits = splits
-        
-        # Load full Inception model for classification
-        block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[1008]
+
+        # Use 2048-dim pool features (supported by your InceptionV3)
+        dim = 2048
+        block_idx = InceptionV3.BLOCK_INDEX_BY_DIM[dim]
         self.inception = InceptionV3([block_idx]).to(device)
         self.inception.eval()
-    
-    def calculate_inception_score(
-        self,
-        images: torch.Tensor,
-        batch_size: int = 32
-    ) -> Tuple[float, float]:
+
+        # Add a small linear head for 1000-class logits
+        self.fc = nn.Linear(dim, 1000).to(device)
+        nn.init.normal_(self.fc.weight, std=0.02)
+        nn.init.zeros_(self.fc.bias)
+
+    def calculate_inception_score(self, images: torch.Tensor, batch_size: int = 32):
         """
         Calculate Inception Score.
         
@@ -162,34 +164,41 @@ class InceptionScoreCalculator:
             batch_size: Batch size for processing
             
         Returns:
-            Tuple of (mean IS, std IS)
+            Tuple (mean IS, std IS)
         """
         n_images = images.size(0)
-        
-        # Get predictions
         preds = []
+
         for i in range(0, n_images, batch_size):
             batch = images[i:i+batch_size].to(self.device)
+
             with torch.no_grad():
-                pred = F.softmax(self.inception(batch)[0], dim=1)
-            preds.append(pred.cpu().numpy())
-        
+                # Extract 2048-dim features
+                feats = self.inception(batch)[0]
+                feats = F.adaptive_avg_pool2d(feats, (1, 1)).squeeze()
+
+                # Convert to logits
+                logits = self.fc(feats)
+
+                # Probabilities
+                p = F.softmax(logits, dim=1)
+
+            preds.append(p.cpu().numpy())
+
         preds = np.concatenate(preds, axis=0)
-        
+
         # Compute IS for each split
         split_scores = []
         split_size = n_images // self.splits
-        
+
         for k in range(self.splits):
             part = preds[k * split_size:(k + 1) * split_size, :]
             py = np.mean(part, axis=0)
-            scores = []
-            for i in range(part.shape[0]):
-                pyx = part[i, :]
-                scores.append(np.sum(pyx * np.log(pyx / py + 1e-10)))
-            split_scores.append(np.exp(np.mean(scores)))
-        
-        return np.mean(split_scores), np.std(split_scores)
+
+            kl = part * (np.log(part + 1e-10) - np.log(py + 1e-10))
+            split_scores.append(np.exp(np.mean(np.sum(kl, axis=1))))
+
+        return float(np.mean(split_scores)), float(np.std(split_scores))
 
 
 # ============================================================================
