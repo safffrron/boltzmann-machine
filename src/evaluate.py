@@ -3,7 +3,7 @@ Evaluation script for trained EBM models.
 
 Computes FID, Inception Score, LPIPS diversity, and MCMC diagnostics.
 """
-
+import torch.nn.functional as F
 import os
 import argparse
 import torch
@@ -200,6 +200,9 @@ def evaluate_conv_ebm(
     
     # Generate samples
     print(f"\nGenerating {num_samples} samples...")
+    # Ensure minimum batch for IS
+    num_samples = max(num_samples, 1024)
+
     samples = sample_conv_ebm(
         checkpoint_path=checkpoint_path,
         config_path=config_path,
@@ -208,6 +211,7 @@ def evaluate_conv_ebm(
         output_dir=output_dir,
         device=device
     )
+
     
     # Normalize to [-1, 1] for FID/IS
     samples_normalized = samples * 2 - 1
@@ -338,7 +342,7 @@ def evaluate_conv_ebm(
             num_steps=1
         )
 
-    
+    energies = np.array(energies)
     # Autocorrelation
     autocorr = energy_autocorrelation(energies, max_lag=50)
     results['autocorrelation'] = autocorr.tolist()
