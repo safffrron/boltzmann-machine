@@ -1,0 +1,152 @@
+{
+  "0": {
+    "reconstruction_error": 0.07204845590660205,
+    "free_energy": -181.09809467935153,
+    "epoch_time": 4.890549182891846
+  },
+  "1": {
+    "reconstruction_error": 0.050890642433212355,
+    "free_energy": -204.70401516123715,
+    "epoch_time": 4.94339394569397
+  },
+  "2": {
+    "reconstruction_error": 0.043897395046093524,
+    "free_energy": -223.11705173590244,
+    "epoch_time": 4.877686262130737
+  },
+  "3": {
+    "reconstruction_error": 0.039681038707813136,
+    "free_energy": -238.95246919811282,
+    "epoch_time": 4.968775987625122
+  },
+  "4": {
+    "reconstruction_error": 0.036783791003892057,
+    "free_energy": -252.52392535739475,
+    "epoch_time": 4.906164884567261
+  },
+  "5": {
+    "reconstruction_error": 0.0322644589906638,
+    "free_energy": -279.06736135890344,
+    "epoch_time": 4.88963770866394
+  },
+  "6": {
+    "reconstruction_error": 0.0277393639812039,
+    "free_energy": -316.7180595071907,
+    "epoch_time": 4.875500679016113
+  },
+  "7": {
+    "reconstruction_error": 0.025193557457632233,
+    "free_energy": -348.46985293657355,
+    "epoch_time": 4.960437297821045
+  },
+  "8": {
+    "reconstruction_error": 0.02350369967822718,
+    "free_energy": -375.82682115603717,
+    "epoch_time": 4.902574300765991
+  },
+  "9": {
+    "reconstruction_error": 0.022270493901883945,
+    "free_energy": -399.4453196077265,
+    "epoch_time": 4.989459753036499
+  },
+  "10": {
+    "reconstruction_error": 0.021315968360624507,
+    "free_energy": -419.9348719670222,
+    "epoch_time": 5.037639617919922
+  },
+  "11": {
+    "reconstruction_error": 0.020554619303976115,
+    "free_energy": -437.559823191064,
+    "epoch_time": 4.9457926750183105
+  },
+  "12": {
+    "reconstruction_error": 0.0199265341895322,
+    "free_energy": -453.183708712586,
+    "epoch_time": 4.8834898471832275
+  },
+  "13": {
+    "reconstruction_error": 0.019419489902022302,
+    "free_energy": -466.17225490472254,
+    "epoch_time": 4.823802709579468
+  },
+  "14": {
+    "reconstruction_error": 0.018972857946800627,
+    "free_energy": -477.31936423798913,
+    "epoch_time": 4.871407508850098
+  },
+  "15": {
+    "reconstruction_error": 0.0185513892569221,
+    "free_energy": -487.07161777854986,
+    "epoch_time": 5.001866579055786
+  },
+  "16": {
+    "reconstruction_error": 0.018351793118044097,
+    "free_energy": -492.8513965443668,
+    "epoch_time": 4.944808483123779
+  },
+  "17": {
+    "reconstruction_error": 0.018169747355083626,
+    "free_energy": -497.9475815601838,
+    "epoch_time": 4.875362157821655
+  },
+  "18": {
+    "reconstruction_error": 0.018042895787705977,
+    "free_energy": -502.7498144818167,
+    "epoch_time": 4.902446031570435
+  },
+  "19": {
+    "reconstruction_error": 0.017872548291985042,
+    "free_energy": -507.6249490721613,
+    "epoch_time": 4.9209935665130615
+  },
+  "20": {
+    "reconstruction_error": 0.017731178508132186,
+    "free_energy": -511.91849798218817,
+    "epoch_time": 4.885331630706787
+  },
+  "21": {
+    "reconstruction_error": 0.017607320653290577,
+    "free_energy": -515.8215410933535,
+    "epoch_time": 4.949576377868652
+  },
+  "22": {
+    "reconstruction_error": 0.01747251013254062,
+    "free_energy": -519.6169524885651,
+    "epoch_time": 4.928989887237549
+  },
+  "23": {
+    "reconstruction_error": 0.017353065190518387,
+    "free_energy": -523.939698439378,
+    "epoch_time": 4.944615840911865
+  },
+  "24": {
+    "reconstruction_error": 0.0172690669588076,
+    "free_energy": -527.5245794312567,
+    "epoch_time": 4.965713262557983
+  },
+  "25": {
+    "reconstruction_error": 0.017097836889676813,
+    "free_energy": -530.032710670406,
+    "epoch_time": 4.926575660705566
+  },
+  "26": {
+    "reconstruction_error": 0.017063380879724126,
+    "free_energy": -531.4302145150991,
+    "epoch_time": 4.9475226402282715
+  },
+  "27": {
+    "reconstruction_error": 0.017028330763579052,
+    "free_energy": -532.3016641730936,
+    "epoch_time": 4.825228929519653
+  },
+  "28": {
+    "reconstruction_error": 0.0170031410192227,
+    "free_energy": -533.2604585305238,
+    "epoch_time": 4.873266220092773
+  },
+  "29": {
+    "reconstruction_error": 0.016977535124915916,
+    "free_energy": -534.1997290717231,
+    "epoch_time": 4.828634262084961
+  }
+}

@@ -1,0 +1,26 @@
+Experiment,CD-k,Method,Model,Recon Error,Mixing Time,ESS,Time (h),FID,IS,LPIPS
+conv_cifar_cd10_20251121_215134,1,CD,Conv-EBM,,50,1.0,3.5,432.85,1.01,0.069
+conv_cifar_pcd10_20251122_011314,1,PCD,Conv-EBM,,50,1.0,3.4,433.00,1.01,0.069
+conv_cifar_cd5_20251121_194400,5,CD,Conv-EBM,,50,1.0,2.1,435.97,1.01,0.068
+conv_cifar_tiny_cd5_20251121_193245,5,CD,Conv-EBM,,50,1.0,0.2,433.23,1.01,0.068
+conv_cifar_pcd5_20251122_012143,5,PCD,Conv-EBM,,50,1.0,2.1,433.49,1.01,0.068
+conv_cifar_cd20_20251121_204757,20,CD,Conv-EBM,,50,1.0,4.4,433.34,1.01,0.068
+conv_cifar_cd30_20251122_044704,Unknown,CD,Conv-EBM,,50,1.0,7.8,433.72,1.01,0.068
+conv_cifar_ablation_noise_20251122_072300,Unknown,CD,Conv-EBM,,50,1.0,3.7,433.46,1.01,0.069
+conv_cifar_ablation_buffer_20251122_110544,Unknown,CD,Conv-EBM,,50,1.0,2.1,433.73,1.01,0.067
+conv_cifar_ablation_step_20251122_034052,Unknown,CD,Conv-EBM,,50,1.0,3.7,432.71,1.01,0.067
+rbm_mnist_pcd10_20251121_183328,1,PCD,RBM,0.0171,4,28.5,0.0,,,
+rbm_mnist_cd10_h512_20251122_131742,1,CD,RBM,0.0128,16,9.2,0.1,,,
+rbm_mnist_cd1_20251121_180550,1,CD,RBM,0.0169,7,10.7,0.0,,,
+rbm_fashion_pcd10_20251122_131817,1,PCD,RBM,0.0273,31,2.8,0.1,,,
+rbm_mnist_pcd1_20251121_182408,1,PCD,RBM,0.0199,2,36.9,0.0,,,
+rbm_fashion_cd10_20251122_131459,1,CD,RBM,0.0273,32,1.6,0.1,,,
+rbm_mnist_cd10_20251121_181732,1,CD,RBM,0.0169,29,5.1,0.0,,,
+rbm_mnist_cd100_20251122_125438,1,CD,RBM,0.0150,4,19.1,0.2,,,
+rbm_mnist_pcd50_20251122_131011,5,PCD,RBM,0.0149,16,14.6,0.1,,,
+rbm_mnist_cd5_20251121_180844,5,CD,RBM,0.0168,33,4.3,0.0,,,
+rbm_mnist_cd50_20251122_124713,5,CD,RBM,0.0150,5,18.7,0.1,,,
+rbm_fashion_cd5_20251122_044432,5,CD,RBM,0.0280,38,1.3,0.0,,,
+rbm_mnist_pcd5_20251121_183047,5,PCD,RBM,0.0172,2,62.6,0.0,,,
+rbm_mnist_pcd20_20251122_130449,20,PCD,RBM,0.0154,3,35.5,0.1,,,
+rbm_mnist_cd20_20251121_182007,20,CD,RBM,0.0157,23,8.9,0.1,,,

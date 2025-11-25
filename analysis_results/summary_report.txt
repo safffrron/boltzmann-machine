@@ -1,0 +1,36 @@
+================================================================================
+EBM EXPERIMENTS SUMMARY REPORT
+================================================================================
+
+Total experiments: 25
+
+RBM Experiments: 15
+  - rbm_fashion_cd10_20251122_131459
+  - rbm_fashion_cd5_20251122_044432
+  - rbm_fashion_pcd10_20251122_131817
+  - rbm_mnist_cd100_20251122_125438
+  - rbm_mnist_cd10_20251121_181732
+  - rbm_mnist_cd10_h512_20251122_131742
+  - rbm_mnist_cd1_20251121_180550
+  - rbm_mnist_cd20_20251121_182007
+  - rbm_mnist_cd50_20251122_124713
+  - rbm_mnist_cd5_20251121_180844
+  - rbm_mnist_pcd10_20251121_183328
+  - rbm_mnist_pcd1_20251121_182408
+  - rbm_mnist_pcd20_20251122_130449
+  - rbm_mnist_pcd50_20251122_131011
+  - rbm_mnist_pcd5_20251121_183047
+
+Conv-EBM Experiments: 10
+  - conv_cifar_ablation_buffer_20251122_110544
+  - conv_cifar_ablation_noise_20251122_072300
+  - conv_cifar_ablation_step_20251122_034052
+  - conv_cifar_cd10_20251121_215134
+  - conv_cifar_cd20_20251121_204757
+  - conv_cifar_cd30_20251122_044704
+  - conv_cifar_cd5_20251121_194400
+  - conv_cifar_pcd10_20251122_011314
+  - conv_cifar_pcd5_20251122_012143
+  - conv_cifar_tiny_cd5_20251121_193245
+
+================================================================================
