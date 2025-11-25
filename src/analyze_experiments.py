@@ -63,18 +63,20 @@ def load_experiment_results(results_dir: str, pattern: str = "*") -> Dict:
 
 def extract_cd_k_from_name(exp_name: str) -> int:
     """Extract CD-k value from experiment name."""
-    if 'cd1' in exp_name.lower():
-        return 1
-    elif 'cd5' in exp_name.lower():
-        return 5
+    if 'cd100' in exp_name.lower():
+        return 100
+    elif 'cd50' in exp_name.lower():
+        return 50
     elif 'cd10' in exp_name.lower():
         return 10
     elif 'cd20' in exp_name.lower():
         return 20
     elif 'cd30' in exp_name.lower():
         return 30
-    elif 'cd100' in exp_name.lower():
-        return 100
+    elif 'cd1' in exp_name.lower():
+        return 1
+    elif 'cd5' in exp_name.lower():
+        return 5
     return None
 
 
